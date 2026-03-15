@@ -47,7 +47,7 @@ docker compose exec app php artisan migrate
 
 ## API ENDPOINTS
 
-* ```POST /api/companies``` - create new company 
+* ```POST /api/company``` - create new company 
 * ```GET /api/company/{edrpou}/versions``` - get all company versions by EDRPOU
 
 ### 7) Run Test
