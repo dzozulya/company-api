@@ -70,5 +70,5 @@ In a production environment the following improvements could be implemented:
 3. **Pagination**
     - Paginate version history if the number of versions grows large.
 
-4**Caching**
+4. **Caching**
     - Cache company data and version lists for frequently accessed records.
