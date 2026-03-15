@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Company;
+use App\Models\CompanyVersion;
 use Illuminate\Support\Facades\DB;
 
 final class CompanyService
