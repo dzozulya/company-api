@@ -67,14 +67,11 @@ In a production environment the following improvements could be implemented:
     - Store the difference between versions instead of full snapshots.
     - Track which fields were modified.
 
-4. **API Resources**
-    - Use Laravel API Resources for consistent response formatting.
-
-5. **Tests**
+3. **Tests**
     - Add feature tests for API endpoints and versioning logic.
 
-6. **Pagination**
+4. **Pagination**
     - Paginate version history if the number of versions grows large.
 
-8. **Caching**
+5. **Caching**
     - Cache company data and version lists for frequently accessed records.
