@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Company;
 use App\Models\CompanyVersion;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 final class CompanyService
@@ -25,7 +26,7 @@ final class CompanyService
         });
     }
 
-    public function getVersions(string $edrpou) : array
+    public function getVersions(string $edrpou) : Collection
     {
         $company = Company::where('edrpou', $edrpou)->firstOrFail();
 
