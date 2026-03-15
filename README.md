@@ -1,4 +1,4 @@
-# Yii2 REST API Test Task (PHP 8.3 + Docker)
+# LARAVEL COMPANY API Test Task (PHP 8.4 + Docker)
 
 ## Stack
 - PHP 8.4 (FPM) + Composer
@@ -43,7 +43,7 @@ docker compose exec app php artisan migrate
 
 ### 6) Use app
 
-* [Base URL:http://localhot:8080](http://localhost:8080/).
+* [Base URL:http://localhost:8080](http://localhost:8080/).
 
 ## API ENDPOINTS
 
