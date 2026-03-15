@@ -48,7 +48,7 @@ docker compose exec app php artisan migrate
 ## API ENDPOINTS
 
 * ```POST /api/companies``` - create new company 
-* ```GET /api/company/{edrpou}/versions``` - user detail (id, first_name, last_name, albums[])
+* ```GET /api/company/{edrpou}/versions``` - get all company versions by EDRPOU
 
 ### 7) Run Test
 ```bash
