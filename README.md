@@ -67,11 +67,8 @@ In a production environment the following improvements could be implemented:
     - Store the difference between versions instead of full snapshots.
     - Track which fields were modified.
 
-3. **Tests**
-    - Add feature tests for API endpoints and versioning logic.
-
-4. **Pagination**
+3. **Pagination**
     - Paginate version history if the number of versions grows large.
 
-5. **Caching**
+4**Caching**
     - Cache company data and version lists for frequently accessed records.
