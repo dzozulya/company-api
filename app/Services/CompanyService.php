@@ -1,125 +1,143 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Services;
 
 use App\Models\Company;
-use App\Models\CompanyVersion;
-use Illuminate\Support\Collection;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 final class CompanyService
 {
+    public function __construct(
+        private readonly VersioningService $versioningService,
+    ) {
+    }
+
     /**
      * @throws \Throwable
      */
     public function store(array $data): array
     {
         return DB::transaction(function () use ($data) {
+            $company = $this->findCompanyByEdrpouForUpdate($data['edrpou']);
 
-            $company = $this->findCompanyForUpdate($data['edrpou']);
-
-            if (!$company) {
+            if ($company === null) {
                 return $this->createCompany($data);
             }
 
-            return $this->updateCompany($company, $data);
+            return $this->updateCompanyIfNeeded($company, $data);
         });
     }
 
-    public function getVersions(string $edrpou) : Collection
+    public function getVersions(string $edrpou): Collection
     {
-        $company = Company::where('edrpou', $edrpou)->firstOrFail();
+        $company = Company::query()
+            ->where('edrpou', $edrpou)
+            ->first();
 
-        return $company
-            ->versions()
+        if ($company === null) {
+            throw new ModelNotFoundException('Company not found.');
+        }
+
+        return $company->versions()
             ->orderBy('version')
             ->get();
     }
 
-    private function findCompanyForUpdate(string $edrpou): ?Company
+    private function findCompanyByEdrpouForUpdate(string $edrpou): ?Company
     {
-        return Company::where('edrpou', $edrpou)
+        return Company::query()
+            ->where('edrpou', $edrpou)
             ->lockForUpdate()
             ->first();
     }
+
     private function createCompany(array $data): array
     {
-        $company = Company::create($data);
+        $company = Company::query()->create($this->makeCompanyAttributes($data));
 
-        $version = $this->createVersion($company);
-
-        return [
-            'status' => 'created',
-            'company_id' => $company->id,
-            'version' => $version
-        ];
-    }
-    private function updateCompany(Company $company, array $data): array
-    {
-        $changes = $this->diff(
-            $company->only(['name','edrpou','address']),
-            $data
+        $this->versioningService->createVersion(
+            model: $company,
+            event: 'created',
+            oldSnapshot: null,
+            newSnapshot: $this->versioningService->snapshot($company),
+            createdBy: $this->getCurrentUserId(),
+           comment: 'Initial company version',
         );
 
-        if (empty($changes)) {
+        return $this->makeCreatedResponse($company);
+    }
 
-            return [
-                'status' => 'duplicate',
-                'company_id' => $company->id,
-                'version' => $company->versions()->max('version')
-            ];
+    private function updateCompanyIfNeeded(Company $company, array $data): array
+    {
+        $oldSnapshot = $this->versioningService->snapshot($company);
+        $newSnapshot = $this->makeCompanyAttributes($data);
+        $diff = $this->versioningService->makeDiff($oldSnapshot, $newSnapshot);
+
+        if ($diff === []) {
+            return $this->makeDuplicateResponse($company);
         }
 
-        $company->update($data);
+        $company->update($newSnapshot);
 
-        $version = $this->createVersion($company);
+        $this->versioningService->createVersion(
+            model: $company,
+            event: 'updated',
+            oldSnapshot: $oldSnapshot,
+            newSnapshot: $newSnapshot,
+            createdBy: $this->getCurrentUserId(),
+            comment: 'Company updated',
+        );
 
+        return $this->makeUpdatedResponse($company->fresh(), $diff);
+    }
+
+    private function makeCompanyAttributes(array $data): array
+    {
         return [
-            'status' => 'updated',
-            'company_id' => $company->id,
-            'version' => $version,
-            'changes' => $changes
+            'name' => $data['name'],
+            'edrpou' => $data['edrpou'],
+            'address' => $data['address'],
         ];
     }
 
-    private function createVersion(Company $company): int
+    private function makeCreatedResponse(Company $company): array
     {
-        $version = ($company->versions()->max('version') ?? 0) + 1;
-
-        CompanyVersion::create([
-            'company_id' => $company->id,
-            'version' => $version,
-            'name' => $company->name,
-            'edrpou' => $company->edrpou,
-            'address' => $company->address,
-            'created_at' => now()
-        ]);
-
-        return $version;
+        return [
+            'status' => 'created',
+            'message' => 'Company created successfully',
+            'data' => $company,
+        ];
     }
-    protected function diff(array $old, array $new): array
+
+    private function makeDuplicateResponse(Company $company): array
     {
-        $changes = [];
+        return [
+            'status' => 'duplicate',
+            'message' => 'No changes detected',
+            'data' => $company,
+        ];
+    }
 
-        foreach ($new as $key => $value) {
-
-            if (!array_key_exists($key, $old)) {
-                continue;
-            }
-
-            if ($old[$key] !== $value) {
-
-                $changes[$key] = [
-                    'old' => $old[$key],
-                    'new' => $value
-                ];
-            }
-        }
-
-        return $changes;
+    private function makeUpdatedResponse(Company $company, array $diff): array
+    {
+        return [
+            'status' => 'updated',
+            'message' => 'Company updated successfully',
+            'data' => $company,
+            'changes' => $diff,
+        ];
     }
 
 
+    private function getCurrentUserId(): ?int
+    {
+        $userId = Auth::id();
 
+        return $userId !== null ? (int) $userId : null;
+    }
 }

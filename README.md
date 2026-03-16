@@ -1,4 +1,4 @@
-# LARAVEL COMPANY API Test Task (PHP 8.4 + Docker)
+
 
 ## Stack
 - PHP 8.4 (FPM) + Composer
